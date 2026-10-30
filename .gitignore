@@ -9,5 +9,9 @@ dsh/**/node_modules/
 dsh/packages/toy/lib/
 *.tgz
 
+# Local pnpm store and uploads (never commit)
+/.pnpm-store/
+/.uploads/
+
 # macOS
 .DS_Store
