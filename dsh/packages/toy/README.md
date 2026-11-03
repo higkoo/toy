@@ -1,5 +1,9 @@
 # @bilibili/dsh-toy
 
+This page owns the bundle's **configuration and security model**. Install/update
+commands live in [`dsh/README.md`](../../README.md); human onboarding and the
+full agent matrix live in the [root README](../../../README.md).
+
 A **Web UI** and a set of model tools for the Bilibili [Toy](https://www.bilibili.com/toy)
 creator CLI ([`toy`](https://github.com/bilibili/toy)), inside dsh.
 
@@ -24,9 +28,12 @@ implementation, so the safety rules cannot drift between them.
 
 ## Requirements
 
-1. **dsh** `0.2.1-rc.2` or newer in the `0.2.x` line (the package's
-   `engines.dsh`; an incompatible runtime is rejected before the bundle loads).
-2. **The `toy` binary** (v0.6.x). Install it on the host:
+The canonical prerequisites table (DeepSeek Harness version and install, Node.js,
+login) is in the root README: [Requirements](../../../README.md#前置条件) ·
+[English](../../../README.en.md#requirements). This page only covers what is
+specific to the bundle.
+
+- **The `toy` binary** (v0.6.x). Install it on the host:
 
    ```sh
    # macOS / Linux
@@ -41,12 +48,10 @@ implementation, so the safety rules cannot drift between them.
    Resolution order: the `binary` config, then `toy` on `PATH`, then
    `~/.local/bin/toy` (macOS/Linux) or `%LOCALAPPDATA%\Programs\toy`
    (Windows).
-3. **A logged-in session** (`toy login`). The panel's **登录** button starts the
-   OAuth flow on the host (a browser window opens there); the model can call
-   `toy_account action=login` instead. When any operation reports
-   `login-expired`, log in and retry once — the bundle does not retry in a loop.
-4. **Node.js 22.20+** only for `npx skills` installs and for building from
-   source. The `toy` binary and the dsh runtime do not need it.
+- **A logged-in session** (`toy login`). The panel's **登录** button starts the
+  OAuth flow on the host (a browser window opens there); the model can call
+  `toy_account action=login` instead. When any operation reports
+  `login-expired`, log in and retry once — the bundle does not retry in a loop.
 
 If the binary is missing, the panel replaces its tabs with an install card: the
 one-line install command, a copy button, and **重新检测**. An explicit `binary`
@@ -61,16 +66,19 @@ A released tarball ships the built `lib/`:
 ```sh
 # latest release
 dsh plugin --profile web add https://github.com/bilibili/toy/releases/latest/download/bilibili-dsh-toy.tgz
-# pinned version
-dsh plugin --profile web add https://github.com/bilibili/toy/releases/download/dsh-plugin-v0.1.3/bilibili-dsh-toy-0.1.3.tgz
+# pinned version: replace latest/download with
+# https://github.com/bilibili/toy/releases/download/dsh-plugin-v<version>/bilibili-dsh-toy-<version>.tgz
+# take the version from the Releases page
 ```
 
-From a source checkout, build the workspace once, then link the package:
+From a source checkout (run inside `dsh/`), build the workspace once, then link
+the package:
 
 ```sh
-pnpm --dir dsh install
-pnpm --dir dsh build
-dsh plugin --profile web add /absolute/path/to/dsh/packages/toy
+cd dsh
+pnpm install
+pnpm build
+dsh plugin --profile web add "$PWD/packages/toy"
 ```
 
 Updating a released install means running the same `dsh plugin --profile web add`
@@ -108,9 +116,9 @@ provider picks it up from the agents directory it already scans:
 
 ```sh
 # user-global install: ~/.agents/skills/toy (DSH rank 500)
-npx skills add bilibili/toy -a codex -g
+npx -y skills add bilibili/toy -a codex -g -y
 # or per project: .agents/skills/toy (DSH rank 200)
-npx skills add bilibili/toy -a codex
+npx -y skills add bilibili/toy -a codex -y
 
 npx skills check     # what has updates
 npx skills update    # pull them

@@ -8,13 +8,23 @@ on:
     branches: [main]
     paths:
       - 'dsh/**'
-      - '.github/workflows/dsh-plugin.yml'
+      - 'skills/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'CONTRIBUTING.md'
+      - 'AGENTS.md'
+      - '.github/**'
     tags:
       - 'dsh-plugin-v*'
   pull_request:
     paths:
       - 'dsh/**'
-      - '.github/workflows/dsh-plugin.yml'
+      - 'skills/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'CONTRIBUTING.md'
+      - 'AGENTS.md'
+      - '.github/**'
 
 # The release job needs `contents: write` to create the release and upload
 # assets. The default GITHUB_TOKEN is enough; no repository secrets are used.
@@ -26,6 +36,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  docs:
+    name: Check docs and onboarding
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node .github/scripts/check-docs.mjs
+
   check:
     name: Build and test the bundle
     runs-on: ubuntu-latest

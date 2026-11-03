@@ -6,6 +6,28 @@ license: MIT
 
 # toy: Toy 平台创作者 CLI
 
+**这是什么**：`toy` 是 B 站 Toy 创作者平台的官方命令行。本 skill 教你在不碰真实平台写操作的前提下，用它完成创作者侧任务。
+
+**能干什么**：发布/更新 Toy 页面（目录 / HTML / zip）、查看自己的 Toy 与 PV/UV 统计、查本地发布记录、把视频绑定到 Toy。
+
+**需要什么**：宿主机装有 `toy`（用 `command -v toy` 检测），并且已 `toy login`。版本与 Node 要求见安装指引 `references/installation.md`。
+
+**三步流程**：内容预检 → `create` / `update` **不带 `--yes`** 生成预览 → 用户明确确认后，用**完全相同的参数**加 `--yes` 提交审核。
+
+## 常见问题（先看这里）
+
+| 症状 | 怎么办 |
+|---|---|
+| 没登录 / 报「登录态已失效」 | 跑 `toy login`，然后**重试原命令一次**；仍失败就停下报告用户，不循环 |
+| 没装 `toy` / `command -v toy` 为空 | 按 `references/installation.md` 安装，装完用 `toy version` 验证 |
+| 预检报 ERROR | 按 `references/content-checklist.md` 修完再传；ERROR 会拦住发布，硬传只会拿到报错 |
+| 预检只有 WARN | 不拦发布，但必须**逐条说给用户听**（WARN 不改退出码，不说等于没查） |
+| 「预览 / 确认」是什么意思 | 不带 `--yes` 只上传生成 `preview_url`，**不提交**；必须拿到用户明确「提交」答复后才加 `--yes` |
+| 不确定命令或参数 | 跑 `toy --help-json`，不要凭记忆构造 flag |
+| 非交互环境提示需要 `--yes` | 这是预览/提交闸门，按铁律 2 走预览-确认，不要无脑绕过 |
+
+## 使用说明
+
 通过 `toy` 二进制（cobra CLI，服务端 OAuth 登录）完成 Toy 平台的创作者侧操作：打包发布、更新、预览、查询、视频绑定。本 skill 不写命令矩阵 —— CLI 自描述足够，写死字段名只会与代码漂移。Skill 只承载工作流和铁律。
 
 ## 何时使用

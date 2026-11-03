@@ -18,11 +18,7 @@ The panel and the model tools share one Host implementation (`packages/toy/src/h
 
 ## Requirements
 
-| Dependency | Version | Notes |
-|---|---|---|
-| DeepSeek Harness | `0.2.1-rc.2` (the `0.2.x` line) | The `engines.dsh` range; an incompatible runtime is rejected before the bundle loads |
-| `toy` CLI | `v0.6.x` | Install it on the machine running dsh and complete `toy login` |
-| Node.js | `22.20+` | Only for `npx skills` installs and building from source |
+The full prerequisites table (including the DeepSeek Harness install and version check) is in the root README; this page does not repeat it: [Requirements](../README.en.md#requirements).
 
 The `toy` binary and its login are **per machine/user**, not per dsh profile. When the binary is missing, the panel shows the install steps and a **Check again** button.
 
@@ -32,16 +28,18 @@ The `toy` binary and its login are **per machine/user**, not per dsh profile. Wh
 # latest release
 dsh plugin --profile web add https://github.com/bilibili/toy/releases/latest/download/bilibili-dsh-toy.tgz
 
-# pinned version
-dsh plugin --profile web add https://github.com/bilibili/toy/releases/download/dsh-plugin-v0.1.3/bilibili-dsh-toy-0.1.3.tgz
+# pinned version: replace latest/download with
+# https://github.com/bilibili/toy/releases/download/dsh-plugin-v<version>/bilibili-dsh-toy-<version>.tgz
+# take the version from the Releases page
 ```
 
-From a source checkout:
+From a source checkout (run inside `dsh/`):
 
 ```sh
-pnpm --dir dsh install
-pnpm --dir dsh build
-dsh plugin --profile web add /absolute/path/to/dsh/packages/toy
+cd dsh
+pnpm install
+pnpm build
+dsh plugin --profile web add "$PWD/packages/toy"
 ```
 
 Updating a released install means running `add` again with the new tarball (there is no auto-update channel); a source checkout is updated by pulling and rebuilding. Restart dsh after changing the plugin.
@@ -72,12 +70,14 @@ Every field is optional; defaults are documented in [`cordis.patch.yml`](package
 
 ## Development and verification
 
+Run inside `dsh/` (`cd dsh` first):
+
 ```sh
-pnpm --dir dsh install
-pnpm --dir dsh check   # build + typecheck + node:test (fake toy, no real platform writes)
+pnpm install
+pnpm check   # build + typecheck + node:test (fake toy, no real platform writes)
 ```
 
-Load locally:
+Load locally (from the **repository root**, because the path contains `dsh/packages/toy`):
 
 ```sh
 DSH=/path/to/dsh

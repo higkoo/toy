@@ -51,8 +51,7 @@ before touching anything under `dsh/`.
 
 ```sh
 # Plugin (build + tests, fake toy binary; no real platform access)
-pnpm --dir dsh install
-pnpm --dir dsh check
+cd dsh && pnpm install && pnpm check
 
 # Skill: nothing to build; review the edited files and links
 ```
