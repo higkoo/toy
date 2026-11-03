@@ -184,7 +184,7 @@ export function createSkillManager(options = {}) {
           action,
           command: argv.join(' '),
           output,
-          error: { kind: 'npx-missing', message: 'could not start `npx`; install Node.js 22.20+ and make npx available on PATH', hint: argv.join(' ') },
+          error: { kind: 'npx-missing', message: 'could not start `npx`; install Node.js 22.19+ and make npx available on PATH', hint: argv.join(' ') },
         }
       }
       if (result.timedOut) {

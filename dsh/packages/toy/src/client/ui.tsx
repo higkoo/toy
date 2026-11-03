@@ -95,11 +95,12 @@ export function Banner({
 
 /** Render a normalized failure with its kind and hint. */
 export function FailureBanner({ failure, copy }: { readonly failure: Failure; readonly copy: Copy }): ReactNode {
+  const hint = copy.errorHint(failure.kind, failure.hint)
   return h(
     Banner,
     { tone: 'error', title: copy.operationFailed(failure.message) },
     h('span', { className: 'toy-caption' }, copy.errorKind(failure.kind)),
-    failure.hint === undefined ? null : h('div', { className: 'toy-field-hint' }, `${copy.hintLabel}: ${failure.hint}`),
+    hint === undefined ? null : h('div', { className: 'toy-field-hint' }, `${copy.hintLabel}: ${hint}`),
   )
 }
 
