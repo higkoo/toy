@@ -6,7 +6,7 @@
 
 把下面这段整段复制到任意支持 Skill 的 Agent（Claude Code、Codex、Trae、WorkBuddy、CodeBuddy、OpenCode、AtomCode、DeepSeek Harness 都可以）：
 
-> 请帮我安装并使用 bilibili Toy skill：先克隆 https://github.com/bilibili/toy（如果我不能联网，就直接读取这个仓库里的 skills/toy/SKILL.md），把 skills/toy 复制到你自己的 skills 目录并确认你能读到 SKILL.md；然后用几句话告诉我 toy 是什么、能做什么、需要哪些前置条件；接着检查宿主机是否装了 toy 命令、是否已登录（没装就按 SKILL.md 的安装指引装，未登录就运行 toy login）；最后带我把 ./my-site 发布到 Toy——先做内容预检，再生成预览，等我看完并明确回复「提交」后再提交审核。每一步先说明你要做什么，出错时告诉我原因和下一步怎么办。
+> 请帮我安装并使用 bilibili Toy skill：先克隆 https://github.com/bilibili/toy （如果我不能联网，就直接读取这个仓库里的 skills/toy/SKILL.md），把 skills/toy 复制到你自己的 skills 目录并确认你能读到 SKILL.md；然后用几句话告诉我 toy 是什么、能做什么、需要哪些前置条件；接着检查宿主机是否装了 toy 命令、是否已登录（没装就按 SKILL.md 的安装指引装，未登录就运行 toy login）；最后带我把 ./my-site 发布到 Toy——先做内容预检，再生成预览，等我看完并明确回复「提交」后再提交审核。每一步先说明你要做什么，出错时告诉我原因和下一步怎么办。
 
 **贴进去之后你会看到**：Agent 先复述它读到的 skill 要点（toy 是什么、要装 `toy` CLI、要先登录），再检查 `command -v toy` 和登录态；若环境就绪，它会向你确认要发布的本地路径，先跑内容预检、再给出预览链接，不会直接提交审核。环境缺东西时，它会先给安装或登录命令，而不是报错停下。
 
