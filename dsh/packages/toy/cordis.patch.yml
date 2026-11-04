@@ -12,6 +12,9 @@
         # timeoutMs: 60000
         # Package upload + submit; large packages are slow on purpose.
         # uploadTimeoutMs: 600000
+        # Maximum bytes captured from one CLI run; raise it for large --json
+        # dumps (e.g. thousands of Toys). Default: 8388608 (8 MiB).
+        # maxOutputBytes: 8388608
         # Local package precheck before an upload: block | warn | off.
         # `block` refuses the upload while any ERROR-class finding remains.
         # precheck: block

@@ -1,0 +1,53 @@
+name: Bug report
+description: Something is broken in the skill or the DSH plugin
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Remove tokens, cookies and your Toy access password** before pasting any output.
+  - type: input
+    id: toy-version
+    attributes:
+      label: toy CLI version
+      description: Output of `toy version`
+      placeholder: toy v0.6.4 ...
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which part?
+      options:
+        - Agent Skill (skills/toy)
+        - DSH plugin (dsh/)
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Agent / host
+      description: e.g. Claude Code, Codex, Trae, DeepSeek Harness <version>
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Installed with `npx -y skills add bilibili/toy -y`
+        2. Asked the agent to publish ./my-site
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Prefer `--json` output; redact secrets
+      render: shell

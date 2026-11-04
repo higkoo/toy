@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a capability or an onboarding improvement
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which part?
+      options:
+        - Agent Skill (skills/toy)
+        - DSH plugin (dsh/)
+        - Documentation / onboarding
+        - A new agent integration
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user you have in mind and what they cannot do today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: If this is a new agent integration, link to its skills-directory documentation.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

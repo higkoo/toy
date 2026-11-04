@@ -19,6 +19,40 @@ export interface LocaleContext {
   get(serviceKey: string): unknown
 }
 
+/**
+ * Human-facing labels for the failure kinds the CLI layer emits.
+ * Unlisted kinds fall back to the raw kind, so new kinds degrade gracefully.
+ */
+const ERROR_KIND_ZH: Partial<Record<string, string>> = {
+  timeout: '超时',
+  'output-limit': '输出超限',
+  'binary-missing': '未找到 toy CLI',
+  usage: '命令用法不匹配',
+  'login-expired': '登录态失效',
+}
+
+/**
+ * Chinese hints for the five most common failures. They say what to do, not
+ * what went wrong internally; the original CLI message is still shown verbatim
+ * above them. Kinds outside this map keep the CLI's own English hint.
+ */
+const ERROR_HINT_ZH: Partial<Record<string, string>> = {
+  timeout: '上传大包可能较慢：先重试一次；若反复超时，把插件配置里的 uploadTimeoutMs 调大（只读命令调 timeoutMs）。',
+  'output-limit': '命令输出超过了插件上限：调大 maxOutputBytes，或缩小命令范围。',
+  'binary-missing': '在宿主机安装 toy：curl -fsSL https://boss.hdslb.com/toy-cli/toy/install.sh | bash；或把插件配置里的 binary 指向它的绝对路径。',
+  usage: '本地 toy CLI 可能比插件预期的版本旧：先跑 toy --help-json 核对参数，或用 toy upgrade 升级。',
+  'login-expired': '点面板的「登录」按钮（或运行 toy login）完成授权，然后重试原操作一次。',
+}
+
+/** English parallels of the same five hints (the CLI hint is already English). */
+const ERROR_HINT_EN: Partial<Record<string, string>> = {
+  timeout: 'Large uploads can be slow: retry once, then raise uploadTimeoutMs in the plugin config (timeoutMs for read-only commands).',
+  'output-limit': 'The command produced more output than the plugin captures: raise maxOutputBytes, or narrow the command.',
+  'binary-missing': 'Install toy on the host: curl -fsSL https://boss.hdslb.com/toy-cli/toy/install.sh | bash — or set the `binary` config to its absolute path.',
+  usage: 'The local toy CLI may be older than this plugin expects: run toy --help-json to check the arguments, or upgrade with toy upgrade.',
+  'login-expired': 'Use the panel\'s Login button (or run toy login), then retry the original operation once.',
+}
+
 const ZH = {
   appTitle: 'bilibili Toy',
   appSubtitle: '浏览你的 Toy、查看统计、预检本地包，并在明确确认后提交审核。',
@@ -33,7 +67,8 @@ const ZH = {
   open: '打开',
   none: '—',
   operationFailed: (message: string) => `操作失败：${message}`,
-  errorKind: (kind: string) => `错误类型：${kind}`,
+  errorKind: (kind: string) => `错误类型：${ERROR_KIND_ZH[kind] ?? kind}`,
+  errorHint: (kind: string, hint: string | undefined) => ERROR_HINT_ZH[kind] ?? hint,
   hintLabel: '建议',
   readOnlyNote: '本页面只通过宿主机上的 toy CLI 读写数据。',
 
@@ -88,7 +123,7 @@ const ZH = {
   skillManagedHint: 'npx skills 写入 ~/.agents/skills 后，DSH 会自动发现并更新 catalog，无需重启。',
   skillConfirmTitle: '安装 / 更新 skill',
   skillConfirmBody: '将在宿主机运行下面的命令，从 GitHub 拉取最新 toy skill 并写入 agents 目录：',
-  skillConfirmWarn: '需要 Node.js 22.20+、网络和 npx；会写入 ~/.agents/skills/toy。',
+  skillConfirmWarn: '需要 Node.js 22.19+、网络和 npx；会写入 ~/.agents/skills/toy。',
   skillConfirmRun: '运行',
   skillConfirmCancel: '取消',
   skillOutput: '命令输出',
@@ -305,6 +340,7 @@ const EN: typeof ZH = {
   none: '—',
   operationFailed: (message: string) => `Operation failed: ${message}`,
   errorKind: (kind: string) => `Error kind: ${kind}`,
+  errorHint: (kind: string, hint: string | undefined) => ERROR_HINT_EN[kind] ?? hint,
   hintLabel: 'Hint',
   readOnlyNote: 'This page reads and writes only through the toy CLI on the host.',
 
@@ -358,7 +394,7 @@ const EN: typeof ZH = {
   skillManagedHint: 'Once npx skills writes ~/.agents/skills, dsh discovers it and refreshes the catalog without a restart.',
   skillConfirmTitle: 'Install / update skill',
   skillConfirmBody: 'This runs the command below on the host, pulls the latest toy skill from GitHub and writes it into the agents directory:',
-  skillConfirmWarn: 'Needs Node.js 22.20+, network and npx; writes ~/.agents/skills/toy.',
+  skillConfirmWarn: 'Needs Node.js 22.19+, network and npx; writes ~/.agents/skills/toy.',
   skillConfirmRun: 'Run',
   skillConfirmCancel: 'Cancel',
   skillOutput: 'Command output',

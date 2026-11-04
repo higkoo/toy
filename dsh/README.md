@@ -18,11 +18,7 @@
 
 ## 前置条件
 
-| 依赖 | 版本 | 说明 |
-|---|---|---|
-| DeepSeek Harness | `0.2.1-rc.2`（`0.2.x` 线） | `engines.dsh` 声明的范围，不兼容的运行时会在加载前被拒 |
-| `toy` CLI | `v0.6.x` | 需在运行 dsh 的机器安装，并完成 `toy login` |
-| Node.js | `22.20+` | 仅 `npx skills` 安装与源码构建需要 |
+完整的前置条件表（含 DeepSeek Harness 安装与版本核对）在根 README，这里不重复：[前置条件](../README.md#前置条件)。
 
 `toy` 二进制和登录态是**按机器/用户**的，不随 dsh profile 走。找不到二进制时，面板会显示安装指引和「重新检测」。
 
@@ -32,16 +28,18 @@
 # 最新 Release
 dsh plugin --profile web add https://github.com/bilibili/toy/releases/latest/download/bilibili-dsh-toy.tgz
 
-# 锁定版本
-dsh plugin --profile web add https://github.com/bilibili/toy/releases/download/dsh-plugin-v0.1.3/bilibili-dsh-toy-0.1.3.tgz
+# 锁定版本：把上面的 latest/download 换成
+# https://github.com/bilibili/toy/releases/download/dsh-plugin-v<版本>/bilibili-dsh-toy-<版本>.tgz
+# 具体版本号以 Releases 页为准
 ```
 
-从源码构建：
+从源码构建（在 `dsh/` 目录内执行）：
 
 ```sh
-pnpm --dir dsh install
-pnpm --dir dsh build
-dsh plugin --profile web add /absolute/path/to/dsh/packages/toy
+cd dsh
+pnpm install
+pnpm build
+dsh plugin --profile web add "$PWD/packages/toy"
 ```
 
 更新已安装的 Release 需要重新 `add` 新的 tarball（没有自动更新通道）；源码方式则拉取后重建。改完插件后重启 dsh。
@@ -72,12 +70,14 @@ dsh plugin --profile web add /absolute/path/to/dsh/packages/toy
 
 ## 开发与验证
 
+在 `dsh/` 目录内执行（先 `cd dsh`）：
+
 ```sh
-pnpm --dir dsh install
-pnpm --dir dsh check   # 构建 + 类型检查 + node:test（fake toy，无真实平台写入）
+pnpm install
+pnpm check   # 构建 + 类型检查 + node:test（fake toy，无真实平台写入）
 ```
 
-本地加载：
+本地加载（在**仓库根目录**执行，路径含 `dsh/packages/toy`）：
 
 ```sh
 DSH=/path/to/dsh
