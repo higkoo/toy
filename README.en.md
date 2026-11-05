@@ -26,7 +26,7 @@ Both wrap the official [`toy`](https://github.com/bilibili/toy) CLI. The skill c
 | What you want | Use | Where |
 |---|---|---|
 | Publish or update content, read stats | **CLI** | [Path A](#path-a-cli) |
-| Integrate Toy publishing into your own tool or service | **SDK** (none in this repo; see the fallback) | [Path B](#path-b-sdk) |
+| Add saves, leaderboards, sharing or camera to a Toy page | **In-page JS SDK** | [Path B](#path-b-in-page-js-sdk) |
 | Have an AI agent do the work | **Skill** | [Path C](#path-c-skill) |
 
 Shared prerequisites (`toy` binary, login, Node version) live in exactly one place: [Requirements](#requirements).
@@ -63,36 +63,65 @@ The three common commands (flags read from `toy v0.6.4` `--help-json`):
 - the `toy create` JSON contains `preview_url`, meaning the package is uploaded but **not submitted**;
 - after `--yes`, the JSON contains `id` and `status`, which means it entered review.
 
-### Path B: SDK
+### Path B: In-page JS SDK
 
-**This repo ships no public Toy publishing SDK.** Evidence:
+The Toy JS SDK is the **`window.toy` object injected into a Toy page** — not an npm package. It only exists inside the Bilibili App / Web Toy container; the page does not install or bundle it. Every method returns a Promise except `onContainerChange`, which synchronously returns an unsubscribe function.
 
-- there is no importable SDK package here; `skills/toy` is documentation plus a Python precheck script;
-- `dsh/packages/toy` is `@bilibili/dsh-toy`, a **DSH plugin bundle** whose `main` is `lib/index.js` (a Cordis plugin entry that registers the `toy_*` tools and the panel), not a general SDK;
-- the official capability surface is the `toy` binary.
+**Step 1: wire it up.** Add one line to the Toy page's `<head>`:
 
-For now, integrate through the CLI's `--json` output. Minimal wrapper, no dependencies:
-
-```js
-// toy-shim.mjs — using the CLI as a poor man's SDK
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-
-const run = promisify(execFile)
-
-export async function toy(args, { binary = 'toy', timeout = 60_000 } = {}) {
-  const { stdout } = await run(binary, [...args, '--json'], { timeout })
-  return JSON.parse(stdout)          // every command accepts the global --json flag
-}
-
-// e.g. get a preview (no submit)
-const preview = await toy(['create', './my-site'])
-console.log(preview.preview_url)
+```html
+<script src="//s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
 ```
 
-This wraps the CLI; it is not an official SDK. `toy --help-json` is the authoritative contract — do not hand-write field names.
+**Step 2: copy this minimal example** (read a cloud save and guard an App-only ability with `isSupport`):
 
-**Success looks like**: the script prints the output of `toy version` (the skeleton was run locally); `toy(['create', ...])` returns an object with `preview_url` (requires a login; not verified online here).
+```html
+<script src="//s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
+<div>Coins: <span id="coins">0</span></div>
+<script>
+  (async () => {
+    if (!window.toy) return console.warn('not inside the Toy container')
+    try {
+      // Cloud storage: per logged-in user, per Toy, across devices
+      const { coins = '0' } = await toy.getCloudStorage(['coins'])
+      document.querySelector('#coins').textContent = coins
+
+      // Check before calling anything the web environment does not support
+      if (await toy.isSupport('saveImageToAlbum')) {
+        await toy.saveImageToAlbum({ url: 'https://i0.hdslb.com/bfs/archive/example.jpg' })
+      }
+    } catch (error) {
+      console.warn(String(error)) // every SDK error carries the [ToySDK] prefix
+    }
+  })()
+</script>
+```
+
+**Step 3: verify.** Publish the page as a Toy (see [Path A](#path-a-cli)) and open it in the app or on the web: the coin slot shows the cloud value, the console has no `[ToySDK]` errors, and on the web `isSupport('saveImageToAlbum')` returns `false` instead of throwing.
+
+#### Capability groups (full signatures in [docs/toy-js-sdk.md](docs/toy-js-sdk.md))
+
+| Group | Methods | What it is for | App / Web |
+|---|---|---|---|
+| Navigation | `navigate` | Jump to video / space / search / opus / tribee / Toy | Both; **must run inside a user gesture** |
+| Sharing and QR | `share`, `getQrCode`, `saveImageToAlbum`, `closeBrowser` | Share sheet, cross-device handoff, posters, saving images | `share` / `saveImageToAlbum` / `closeBrowser` are app-only; `getQrCode` works on both |
+| User and author info | `getUserProfile`, `getAuthorProfile`, `getAuthorVideos`, `getAuthorRelation`, `getVideoUserActions` | Avatar/nickname, author profile and videos, follow state, per-video actions | Both; external mobile browsers return `unsupported` |
+| Cloud and shared storage | `get` / `set` / `removeCloudStorage`, `get` / `set` / `removeSharedStorage` | Per-user saves; saves shared across several Toys | Both; login required; 128 keys per Toy, values ≤1024 bytes |
+| Leaderboards | `submitScore`, `getRankList`, `getMyRank` | Submit scores, read a board, look up your rank | Both; `board` is 1–5, `period` is all / month / week / day |
+| Camera and microphone | `requestCamera`, `requestMicrophone`, `stopMedia` | Photos and audio | Both; **user gesture required**, always call `stopMedia` |
+| Container state | `onContainerChange`, `getContainerState`, `setContainerMode` | Viewport, safe area, orientation, immersive mode | **App only**; the web throws `unsupported` |
+| Player input check | `checkInputSafety` | Content check before showing nicknames or messages | Both; returns `ok` / `rejected` / `unavailable` |
+
+#### Pitfalls you cannot skip
+
+- **Unsupported abilities throw on the web**: `await toy.isSupport('<ability>')` first instead of relying on catch.
+- **Every error carries the `[ToySDK]` prefix** — filter logs by it.
+- **`navigate` must be called from a user gesture** (e.g. a click), otherwise it is blocked.
+- **`toyOpenId` is not an auth credential**: it is only a stable pseudonymous id for this user in this Toy, and must not go into analytics or public logs.
+- **Rate-limit errors (`307044`) need exponential backoff**, not an immediate identical retry; cloud storage and leaderboards share one per-Toy quota, so batch calls and avoid polling.
+- **`unavailable` is not a pass**: when `checkInputSafety` returns `unavailable` the check did not run — ask the player to try later, never let the content through.
+
+> Source: Toy JS SDK capability list, updated 2026-09-18. This is the short version; full signatures, constraints and error codes are in [docs/toy-js-sdk.md](docs/toy-js-sdk.md). The official docs remain authoritative.
 
 ### Path C: Skill
 
@@ -251,6 +280,8 @@ skills/
       error-codes.md
     scripts/
       toy_doctor.py       # zero-dependency static preflight for Toy packages
+docs/
+  toy-js-sdk.md           # in-page Toy JS SDK API reference (condensed; official docs win)
 dsh/
   package.json            # private pnpm workspace (build/test toolchain)
   packages/toy/           # @bilibili/dsh-toy bundle: host, Web UI, tests
