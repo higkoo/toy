@@ -26,7 +26,7 @@
 | 你想做的事 | 用哪条 | 去哪里 |
 |---|---|---|
 | 直接发布、更新内容，或查看统计 | **CLI** | [路径 A](#路径-acli) |
-| 把 Toy 的发布能力集成进自己的工具 / 服务 | **SDK**（本仓库暂无，见替代方案） | [路径 B](#路径-bsdk) |
+| 在 Toy 页面里做存档、排行榜、分享、摄像头等交互 | **页面内 JS SDK** | [路径 B](#路径-b页面内-js-sdk) |
 | 让 AI Agent 替我干活 | **Skill** | [路径 C](#路径-cskill) |
 
 三者的共同前置（`toy` 二进制、登录、Node 版本）只写在[前置条件](#前置条件)一处。
@@ -63,36 +63,65 @@ toy create ./my-site --json --yes                      # 看过预览、确认�
 - `toy create` 的 JSON 里出现 `preview_url`，说明包已上传但**尚未提交审核**；
 - 加 `--yes` 后 JSON 里出现 `id` 和 `status`，才算真正进入审核。
 
-### 路径 B：SDK
+### 路径 B：页面内 JS SDK
 
-**本仓库暂无对外发布的 Toy 发布 SDK。** 依据：
+Toy JS SDK 是**注入到 Toy 页面里的 `window.toy`**，不是 npm 包：它只在 B 站 App / Web 的 Toy 容器中存在，页面不需要安装或打包。除 `onContainerChange` 同步返回取消函数外，其余方法都返回 Promise。
 
-- 仓库内没有可被第三方 `import` 的 SDK 包；`skills/toy` 是文档 + Python 预检脚本；
-- `dsh/packages/toy` 的包名 `@bilibili/dsh-toy` 是 **DSH 插件 bundle**，`main` 指向 `lib/index.js`（Cordis 插件入口，负责注册 `toy_*` 工具和面板），不是通用 SDK；
-- 官方能力入口是 `toy` 二进制 CLI。
+**第 1 步：接入**。在 Toy 的 HTML `<head>` 里加一行：
 
-现阶段推荐直接用 CLI 的 `--json` 输出做集成，下面是一个最小包装脚本（不引入任何依赖）：
-
-```js
-// toy-shim.mjs — 用 CLI 当 SDK 的最小包装
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-
-const run = promisify(execFile)
-
-export async function toy(args, { binary = 'toy', timeout = 60_000 } = {}) {
-  const { stdout } = await run(binary, [...args, '--json'], { timeout })
-  return JSON.parse(stdout)          // 所有命令都支持全局 --json
-}
-
-// 例：拿预览（不提交）
-const preview = await toy(['create', './my-site'])
-console.log(preview.preview_url)
+```html
+<script src="//s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
 ```
 
-这是对 CLI 的包装，不是官方 SDK；`toy --help-json` 是契约的权威来源，别按记忆写字段。
+**第 2 步：复制这个最小示例**（读取云存档 + 用 `isSupport` 判断仅 App 可用的能力）：
 
-**成功的标志**：脚本能打印 `toy version` 的输出（骨架已本地实测）；调用 `toy(['create', ...])` 时返回对象含 `preview_url`（需已登录，本次未联网验证）。
+```html
+<script src="//s1.hdslb.com/bfs/seed/toy/app/sdk/toy-sdk.js"></script>
+<div>金币：<span id="coins">0</span></div>
+<script>
+  (async () => {
+    if (!window.toy) return console.warn('不在 Toy 容器内')
+    try {
+      // 云存储：同一登录用户在同一 Toy 下跨设备持久化
+      const { coins = '0' } = await toy.getCloudStorage(['coins'])
+      document.querySelector('#coins').textContent = coins
+
+      // Web 端不支持的能力先判断，别直接调用
+      if (await toy.isSupport('saveImageToAlbum')) {
+        await toy.saveImageToAlbum({ url: 'https://i0.hdslb.com/bfs/archive/example.jpg' })
+      }
+    } catch (error) {
+      console.warn(String(error)) // 所有 SDK 错误都带 [ToySDK] 前缀
+    }
+  })()
+</script>
+```
+
+**第 3 步：验证**。把页面发布成 Toy（见[路径 A](#路径-acli)）并在 App / Web 打开：金币位置显示云存档值、控制台没有 `[ToySDK]` 报错；在 Web 上 `isSupport('saveImageToAlbum')` 返回 `false` 而不是抛错。
+
+#### 能力分组（完整签名与参数见 [docs/toy-js-sdk.md](docs/toy-js-sdk.md)）
+
+| 能力组 | 方法 | 用途 | App / Web |
+|---|---|---|---|
+| 导航 | `navigate` | 跳视频 / 空间 / 搜索 / 动态 / tribee / Toy | 都支持；**必须在用户手势中调用** |
+| 分享与二维码 | `share`、`getQrCode`、`saveImageToAlbum`、`closeBrowser` | 拉起分享、跨设备接力、海报、保存图片 | `share` / `saveImageToAlbum` / `closeBrowser` 仅 App；`getQrCode` 两端都支持 |
+| 用户与作者信息 | `getUserProfile`、`getAuthorProfile`、`getAuthorVideos`、`getAuthorRelation`、`getVideoUserActions` | 头像昵称、作者资料与稿件、关注关系、视频互动状态 | 都支持；外部手机浏览器返回 `unsupported` |
+| 云存储与共享存档 | `get` / `set` / `removeCloudStorage`、`get` / `set` / `removeSharedStorage` | 单人存档；跨多个 Toy 的共享存档 | 都支持；需登录；单 Toy 最多 128 个 key、value ≤1024 字节 |
+| 排行榜 | `submitScore`、`getRankList`、`getMyRank` | 上报分数、读榜、查我的名次 | 都支持；`board` 固定 1–5，`period` 为 all / month / week / day |
+| 摄像头 / 麦克风 | `requestCamera`、`requestMicrophone`、`stopMedia` | 拍照、录音 | 都支持；**必须用户手势**，用完必须 `stopMedia` |
+| 容器状态 | `onContainerChange`、`getContainerState`、`setContainerMode` | 监听尺寸、安全区、方向、沉浸模式 | **仅 App**；Web 调用抛 `unsupported` |
+| 玩家输入检测 | `checkInputSafety` | 昵称、留言等展示前的内容检测 | 都支持；返回 `ok` / `rejected` / `unavailable` 三态 |
+
+#### 必须知道的几个坑
+
+- **Web 端不支持的方法会抛错**：先 `await toy.isSupport('<ability>')` 再调用，不要直接 try 着用。
+- **所有错误带 `[ToySDK]` 前缀**：排查时按这个前缀过滤日志。
+- **`navigate` 必须在用户手势事件（如 click）里调用**，否则会被拦截。
+- **`toyOpenId` 不是鉴权凭证**：它只是当前用户在当前 Toy 内的稳定假名，不得写入埋点或公开日志。
+- **限流错误 `307044` 要指数退避**，不要立即原样重试；云存储与排行榜共用同一个 Toy 的额度，玩家越多越要批量、少轮询。
+- **`unavailable` 不等于检测通过**：`checkInputSafety` 返回 `unavailable` 时说明检测没跑成，应提示稍后再试，不能放行内容。
+
+> 资料依据：Toy JS SDK 能力清单（更新于 2026-09-18）。本文是精简版，完整方法签名、参数约束与错误码见 [docs/toy-js-sdk.md](docs/toy-js-sdk.md)，最终以官方文档为准。
 
 ### 路径 C：Skill
 
@@ -251,6 +280,8 @@ skills/
       error-codes.md
     scripts/
       toy_doctor.py       # 零依赖静态预检脚本
+docs/
+  toy-js-sdk.md           # Toy 页面内 JS SDK 的 API 明细（精简版，官方文档为准）
 dsh/
   package.json            # 私有 pnpm workspace（构建/测试工具链）
   packages/toy/           # @bilibili/dsh-toy bundle：Host、Web UI、测试
